@@ -1,0 +1,28 @@
+{
+    "routes": [
+        {
+            "src": "/",
+            "dest": "/"
+        },
+        {
+            "src": "/login/",
+            "dest": "/login"
+        },
+        {
+            "src": "/register/",
+            "dest": "/register"
+        },
+        {
+            "src": "/dashboard/",
+            "dest": "/dashboard"
+        },
+        {
+            "src": "/teacher-dashboard/",
+            "dest": "/teacher-dashboard"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/404.html" 
+        }
+    ]
+}
