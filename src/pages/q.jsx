@@ -1,21 +1,39 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
-// import { useUser } from "../Provider/UserProvider";
+import { useUser } from "../Provider/UserProvider";
 
-const AdminAtt = () => {
-  const [courseName, setCourseName] = useState("");
-  const [teacherDetails, setTeacherDetails] = useState([]);
-  const handleSelectChange = (event) => {
-    setCourseName(event.target.value);
-  };
-  console.log(teacherDetails, courseName);
-  // const teacherId = user?.fingerprint;
-  // const courseName = "VLSI"; // You can dynamically set this value based on your logic
-  console.log(courseName);
+export const TeacherDash = () => {
+  const { user } = useUser();
+  const [courseName, setCourseName] = useState(user?.courses[0]);
+  const teacherId = user?.fingerprint;
   const [studentsData, setStudentsData] = useState([]);
   const [attendanceData, setAttendanceData] = useState({
     matchedData: [],
     uniqueCourses: [],
   });
+  const [attendanceInfo, setAttendanceInfo] = useState([]);
+
+  const deleteAttendanceData = async (courseName) => {
+    console.log("courseName", courseName);
+    try {
+      const response = await fetch(`http://localhost:3000/attendance/delete`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ courseName }), // Changed 'course' to 'courseName'
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete attendance data");
+      }
+
+      const result = await response.json();
+      console.log(result.message); // Log the success message
+    } catch (error) {
+      console.error("Error deleting attendance data:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
@@ -29,6 +47,7 @@ const AdminAtt = () => {
 
         const data = await response.json();
         setAttendanceData(data);
+        return data; // Return the data
       } catch (error) {
         console.error("Error fetching attendance data:", error);
       }
@@ -36,8 +55,6 @@ const AdminAtt = () => {
 
     // fetch student bt course name
     const fetchStudentsByCourse = async (courseName) => {
-      setStudentsData([]);
-      console.log(courseName);
       try {
         const response = await fetch(
           `${import.meta.env.VITE_IP}/students-by-course`,
@@ -61,49 +78,93 @@ const AdminAtt = () => {
       }
     };
 
-    setAttendanceData({ matchedData: [], uniqueCourses: [] }); // Reset attendance data when course name changes
-    fetchAttendanceData();
-    fetchStudentsByCourse(courseName);
-  }, [courseName]);
+    if (teacherId) {
+      setAttendanceData({ matchedData: [], uniqueCourses: [] });
+      fetchAttendanceData();
+      fetchStudentsByCourse(courseName);
+    }
+  }, [courseName, teacherId]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_IP}/users`)
-      .then((response) => response.json())
-      .then((data) => {
-        const teachers = data.filter((user) => user.category === "Teacher");
-        const matchedTeachers = teachers.filter((teacher) =>
-          teacher.courses.includes(courseName)
+    const calculateAttendanceInfo = () => {
+      const info = studentsData.map((student) => {
+        const dates = Array.from(
+          new Set(
+            attendanceData.matchedData
+              .filter((data) => data.course === courseName)
+              .map((data) => data.Date)
+          )
         );
-        setTeacherDetails(matchedTeachers);
+        const presentDays = dates.filter((date) =>
+          attendanceData.matchedData.find(
+            (data) =>
+              data.Date === date &&
+              Object.values(data).includes(student.fingerprint)
+          )
+        ).length;
+        const percentage =
+          dates.length > 0 ? (presentDays / dates.length) * 100 : 0;
+        return {
+          courseName,
+          name: student.name,
+          id: student.id,
+          totalClasses: dates.length,
+          totalPresentDays: presentDays,
+          percentage: percentage.toFixed(1),
+          totalMarks: percentage / 10,
+        };
       });
-  }, [courseName]);
+      console.log(info);
+      setAttendanceInfo(info);
+    };
+
+    calculateAttendanceInfo();
+  }, [attendanceData.matchedData, courseName, studentsData]);
+  console.log("hello", attendanceInfo);
+  const sendAttendanceDataToServer = async (attendanceInfo) => {
+    try {
+      await deleteAttendanceData(attendanceInfo[0].courseName);
+      const response = await fetch(`http://localhost:3000/student-att-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attendanceInfo),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send attendance data to the server");
+      }
+
+      const result = await response.json();
+      console.log(result); // Log the result from the server
+    } catch (error) {
+      console.error("Error sending attendance data to the server:", error);
+    }
+  };
+  useEffect(() => {
+    sendAttendanceDataToServer(attendanceInfo);
+  }, [attendanceInfo, sendAttendanceDataToServer]);
 
   return (
     <div className="w-[80%] mx-auto overflow-x-auto">
       <h1 className="text-5xl my-10">Attendance </h1>
-      {/* <p>Name: {user?.name}</p>
-            <p>Email: {user?.email}</p>
-            <p>Profession:{user?.category}</p>
-            <p>Mobile:{user?.mobile}</p>
-            <p>Taken Course: {user?.courses.length}</p> */}
-      {teacherDetails.map((teacher, index) => (
-        <div key={index}>
-          <p>Name: {teacher.name}</p>
-          <p>Email: {teacher.email}</p>
-          <p>Profession: {teacher.category}</p>
-          <p>Mobile: {teacher.mobile}</p>
-          {/* <p>Taken Course: {teacher.courses.length}</p> */}
-        </div>
-      ))}
-
+      <p>Name: {user?.name}</p>
+      <p>Email: {user?.email}</p>
+      <p>Profession:{user?.category}</p>
+      <p>Mobile:{user?.mobile}</p>
+      <p>Taken Course: {user?.courses.length}</p>
       <div className="flex gap-2 mt-1">
-        <p>Select a Course to see attendance</p>
-        <select value={courseName} onChange={handleSelectChange}>
-          <option value="">Select a course</option>
-          <option value="MAE">MAE</option>
-          <option value="CMSC">CMSC</option>
-          <option value="DSP">DSP</option>
-          <option value="MM">MM</option>
+        <p>Select Course: </p>
+        <select
+          value={courseName}
+          onChange={(e) => setCourseName(e.target.value)}
+        >
+          {user?.courses.map((course, index) => (
+            <option key={index} value={course}>
+              {course}
+            </option>
+          ))}
         </select>
       </div>
       {/* Iterate over each course */}
@@ -179,5 +240,4 @@ const AdminAtt = () => {
     </div>
   );
 };
-
-export default AdminAtt;
+export default TeacherDash;
