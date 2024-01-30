@@ -11,26 +11,6 @@ const TeacherDash = () => {
     matchedData: [],
     uniqueCourses: [],
   });
-  // const deleteAttendanceData = async (courseName) => {
-  //   try {
-  //     const response = await fetch(`http://localhost:3000/attendance/delete`, {
-  //       method: "DELETE",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ courseName }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to delete attendance data");
-  //     }
-
-  //     const result = await response.json();
-  //     console.log(result.message); // Log the success message
-  //   } catch (error) {
-  //     console.error("Error deleting attendance data:", error);
-  //   }
-  // };
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
@@ -112,6 +92,14 @@ const TeacherDash = () => {
     };
   });
   console.log(attendanceInfo);
+  useEffect(() => {
+    // Reset attendanceData and attendanceInfo when courseName changes
+    setAttendanceData({
+      matchedData: [],
+      uniqueCourses: [],
+    });
+    setStudentsData([]);
+  }, [courseName]);
   const sendStudentInfoToServer = async (attendanceInfo) => {
     if (attendanceInfo.length === 0) {
       console.log("Attendance info is empty");
