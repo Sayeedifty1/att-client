@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 const AdminAtt = () => {
   const [courseName, setCourseName] = useState("");
   const [teacherDetails, setTeacherDetails] = useState([]);
+  const [courses, setCourses] = useState([]);
+
   const handleSelectChange = (event) => {
     setCourseName(event.target.value);
   };
@@ -16,6 +18,13 @@ const AdminAtt = () => {
     matchedData: [],
     uniqueCourses: [],
   });
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_IP}/courses`)
+      .then((response) => response.json())
+      .then((data) => setCourses(data))
+      .catch((error) => console.error("Error:", error));
+  }, []);
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
@@ -100,10 +109,11 @@ const AdminAtt = () => {
         <p>Select a Course to see attendance</p>
         <select value={courseName} onChange={handleSelectChange}>
           <option value="">Select a course</option>
-          <option value="MAE">MAE</option>
-          <option value="CMSC">CMSC</option>
-          <option value="DSP">DSP</option>
-          <option value="MM">MM</option>
+          {courses[0].courses.map((course) => (
+            <option value={course} key={course._id}>
+              {course}
+            </option>
+          ))}
         </select>
       </div>
       {/* Iterate over each course */}
