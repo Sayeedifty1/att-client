@@ -109,7 +109,7 @@ const AdminAtt = () => {
         <p>Select a Course to see attendance</p>
         <select value={courseName} onChange={handleSelectChange}>
           <option value="">Select a course</option>
-          {courses[0].courses.map((course) => (
+          {courses[0]?.courses?.map((course) => (
             <option value={course} key={course._id}>
               {course}
             </option>
